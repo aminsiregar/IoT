@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>IoT Candling Telur Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">CT</div>
+        <div class="brand-text">
+          <div class="brand-title">Candling IoT</div>
+          <div class="brand-subtitle">Monitoring Deck</div>
+        </div>
+      </div>
+
+      <div class="sidebar-status">
+        <span class="pill online">Online</span>
+        <span class="pill muted">Line 01</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-target="monitoring-section">
+          <span class="nav-dot"></span>
+          Monitoring
+        </button>
+        <button class="nav-item" data-target="stats-section">
+          <span class="nav-dot"></span>
+          Statistik
+        </button>
+        <button class="nav-item" data-target="servo-section">
+          <span class="nav-dot"></span>
+          Servo Control
+        </button>
+        <button class="nav-item" data-target="log-section">
+          <span class="nav-dot"></span>
+          Log & Riwayat
+        </button>
+        <button class="nav-item" data-target="settings-section">
+          <span class="nav-dot"></span>
+          Pengaturan
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-avatar">JD</div>
+        <div class="user-info">
+          <div class="user-name">Aminaja    </div>
+          <div class="user-role">Operator</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN AREA -->
+    <main class="main">
+
+      <!-- TOP BAR -->
+      <div class="topbar card">
+        <div class="card-inner topbar-inner">
+          <div class="topbar-left">
+            <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar">
+              <span></span><span></span><span></span>
+            </button>
+            <div class="breadcrumb">Monitoring / Candling Line</div>
+            <div class="title-row">
+              <h1 class="page-title">Candling Telur Otomatis</h1>
+              <span class="pill online">Online</span>
+              <span class="pill accent">Live feed</span>
+            </div>
+            <p class="page-lead">
+              Visual IoT dashboard untuk candling telur otomatis dengan dual-servo dan sensor inframerah.
+            </p>
+          </div>
+          <button class="menu-toggle" id="menu-toggle" aria-label="Toggle actions">
+            <span></span><span></span><span></span>
+          </button>
+          <div class="topbar-actions" id="topbar-actions">
+            <button class="btn-ghost accent" id="btn-test">Test Notifikasi</button>
+            <button class="btn-ghost warning" id="btn-pause">Pause</button>
+            <button class="btn-ghost accent" id="btn-export">Export Data</button>
+            <button class="btn-ghost accent" id="btn-csv">Download CSV</button>
+            <button class="btn-primary" id="btn-config">Edit Konfigurasi</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= MONITORING SECTION ================= -->
+      <section id="monitoring-section" class="page-section active">
+        <!-- HEADER MONITORING -->
+        <header class="card hero-card">
+          <div class="card-inner header-grid">
+            <div class="header-main">
+              <div class="header-status-icon">
+                <span class="status-led"></span>
+                <span class="status-symbol">CL</span>
+              </div>
+              <div>
+                <div class="device-name">Candling Line #1</div>
+                <div class="device-desc">
+                  Sensor inframerah + kamera citra untuk klasifikasi telur fertil & infertil,
+                  dengan dua servo pemisah tray.
+                </div>
+                <div class="device-tags">
+                  <span class="tag">Infrared</span>
+                  <span class="tag">Image Processing</span>
+                  <span class="tag">Dual Servo</span>
+                  <span class="tag">IoT Dashboard</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="header-cards">
+              <div class="mini-card">
+                <span class="mini-label">Status saat ini</span>
+                <div class="mini-value up">Online</div>
+                <div class="mini-sub" id="uptime-label">Berjalan 0 jam</div>
+              </div>
+              <div class="mini-card">
+                <span class="mini-label">Cek terakhir</span>
+                <div class="mini-value" id="last-check">-</div>
+                <div class="mini-sub">Update otomatis setiap beberapa detik</div>
+              </div>
+              <div class="mini-card">
+                <span class="mini-label">24 jam terakhir</span>
+                <div class="mini-bar">
+                  <div class="mini-bar-fill"></div>
+                </div>
+                <div class="mini-sub">0 insiden, 0 down</div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- GRID UTAMA -->
+        <div class="grid-2 card">
+          <div class="card-inner content-stack">
+            <!-- KPI -->
+            <div class="kpi-row">
+              <div class="kpi-card">
+                <div class="kpi-title">
+                  <span>Telur Diproses</span>
+                  <span class="badge-soft" id="scan-speed">0 / menit</span>
+                </div>
+                <div class="kpi-value" id="total-eggs">0</div>
+                <div class="kpi-sub">Total telur yang sudah dicandling.</div>
+              </div>
+
+              <div class="kpi-card">
+                <div class="kpi-title">
+                  <span>Telur Fertil</span>
+                  <span class="badge-soft good" id="fertil-percent">0%</span>
+                </div>
+                <div class="kpi-value" id="fertil-eggs">0</div>
+                <div class="kpi-sub">Dialihkan ke tray servo 1.</div>
+              </div>
+
+              <div class="kpi-card">
+                <div class="kpi-title">
+                  <span>Telur Infertil</span>
+                  <span class="badge-soft warn" id="infertil-percent">0%</span>
+                </div>
+                <div class="kpi-value" id="infertil-eggs">0</div>
+                <div class="kpi-sub">Dialihkan ke tray servo 2.</div>
+              </div>
+            </div>
+
+            <!-- CHART: DOUGHNUT -->
+            <div class="chart-wrapper donut">
+              <div class="chart-header">
+                <div>
+                  <strong>Distribusi Telur</strong>
+                  <div class="chart-sub">Komposisi hasil candling terkini.</div>
+                </div>
+                <div class="chart-legend">
+                  <span class="chart-dot fertil"></span><span>Fertil</span>
+                  <span class="chart-dot infertil"></span><span>Infertil</span>
+                </div>
+              </div>
+              <div class="chart-body">
+                <canvas id="eggChart"></canvas>
+              </div>
+            </div>
+
+            <!-- CHART GRID -->
+            <div class="chart-grid">
+              <div class="chart-wrapper">
+                <div class="chart-header">
+                  <div>
+                    <strong>Respon Waktu Proses</strong>
+                    <div class="chart-sub">Durasi inspeksi per telur (ms).</div>
+                  </div>
+                </div>
+                <div class="chart-body">
+                  <canvas id="responseChart"></canvas>
+                </div>
+              </div>
+
+              <div class="chart-wrapper">
+                <div class="chart-header">
+                  <div>
+                    <strong>Output per Jam</strong>
+                    <div class="chart-sub">Perbandingan telur fertil vs infertil.</div>
+                  </div>
+                </div>
+                <div class="chart-body">
+                  <canvas id="batchChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PANEL KANAN -->
+          <div class="card-inner right-panel">
+            <div class="panel-header">
+              <span>Aktuator & Sensor</span>
+              <span class="panel-sub">Data langsung dari mikrokontroler</span>
+            </div>
+
+            <div class="servo-list">
+              <div class="servo-card">
+                <div class="servo-header">
+                  <span class="servo-name">Servo 1 -> Tray Fertil</span>
+                  <span class="servo-status" id="servo1-status">Idle</span>
+                </div>
+                <div class="servo-body">
+                  <div>
+                    <div>Sudut Servo</div>
+                    <strong><span id="servo1-angle">0</span>&deg;</strong>
+                  </div>
+                  <div class="servo-meta">
+                    <div>Target: Telur fertil</div>
+                    <div id="servo1-last">Belum ada perpindahan</div>
+                  </div>
+                </div>
+                <div class="servo-bar">
+                  <div class="servo-bar-fill" id="servo1-bar"></div>
+                </div>
+              </div>
+
+              <div class="servo-card">
+                <div class="servo-header">
+                  <span class="servo-name">Servo 2 -> Tray Infertil</span>
+                  <span class="servo-status" id="servo2-status">Idle</span>
+                </div>
+                <div class="servo-body">
+                  <div>
+                    <div>Sudut Servo</div>
+                    <strong><span id="servo2-angle">0</span>&deg;</strong>
+                  </div>
+                  <div class="servo-meta">
+                    <div>Target: Telur infertil</div>
+                    <div id="servo2-last">Belum ada perpindahan</div>
+                  </div>
+                </div>
+                <div class="servo-bar">
+                  <div class="servo-bar-fill" id="servo2-bar"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="sensor-card">
+              <div class="sensor-header">
+                <strong>Sensor Inframerah</strong>
+                <span class="sensor-status-pill">
+                  <span class="sensor-led" id="sensor-led"></span>
+                  <span id="sensor-status-text">Menunggu telur...</span>
+                </span>
+              </div>
+              <div class="sensor-detail" id="sensor-detail">
+                Tidak ada telur di posisi candling.
+              </div>
+              <div class="sensor-meta">
+                <span>Jarak simulasi: <strong id="sensor-distance">-</strong></span>
+                <span>Terakhir scan: <strong id="sensor-last-scan">-</strong></span>
+              </div>
+            </div>
+
+            <div class="log-card">
+              <div class="log-header">
+                <h3>Log Proses Candling</h3>
+                <span class="log-sub">Urutan telur terakhir yang diproses</span>
+              </div>
+              <div class="log-body" id="log-body">
+                <div class="log-empty">Belum ada telur yang diproses. Menunggu data IoT...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="footer-note">
+          Tampilan ini hanya <span>simulasi frontend</span>. Integrasi dengan perangkat nyata dapat
+          menggunakan REST API, MQTT, atau WebSocket.
+        </p>
+      </section>
+
+      <!-- ================= STATISTIK SECTION ================= -->
+      <section id="stats-section" class="page-section">
+        <div class="card">
+          <div class="card-inner">
+            <h2 class="section-title">Statistik Produksi</h2>
+            <p class="section-desc">
+              Grafik historis harian/mingguan, perbandingan line candling, dan laporan performa alat.
+            </p>
+
+            <div class="stats-grid">
+              <div class="chart-wrapper">
+                <div class="chart-header">
+                  <div>
+                    <strong>Historis Harian</strong>
+                    <div class="chart-sub">Total telur diproses 7 hari terakhir.</div>
+                  </div>
+                </div>
+                <div class="chart-body">
+                  <canvas id="historyChart"></canvas>
+                </div>
+              </div>
+
+              <div class="chart-wrapper">
+                <div class="chart-header">
+                  <div>
+                    <strong>Performa Mingguan</strong>
+                    <div class="chart-sub">Perbandingan Line 1 vs Line 2.</div>
+                  </div>
+                </div>
+                <div class="chart-body">
+                  <canvas id="lineCompareChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="table-card">
+              <div class="table-head">
+                <div>
+                  <strong>Laporan Performa</strong>
+                  <div class="chart-sub">Rangkuman metrik utama per minggu.</div>
+                </div>
+              </div>
+              <div class="table-body">
+                <table class="perf-table">
+                  <thead>
+                    <tr>
+                      <th>Minggu</th>
+                      <th>Total</th>
+                      <th>Fertil</th>
+                      <th>Infertil</th>
+                      <th>Rasio Fertil</th>
+                      <th>Down Time</th>
+                    </tr>
+                  </thead>
+                  <tbody id="perf-table-body">
+                    <!-- filled via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SERVO SECTION ================= -->
+      <section id="servo-section" class="page-section">
+        <div class="card">
+          <div class="card-inner">
+            <h2 class="section-title">Panel Kontrol Servo</h2>
+            <p class="section-desc">
+              Kontrol manual servo: slider sudut, tombol kalibrasi, dan mode otomatis/manual.
+            </p>
+
+            <div class="servo-panel-grid">
+              <div class="servo-ctrl-card">
+                <div class="servo-ctrl-head">
+                  <div>
+                    <strong>Servo 1 - Tray Fertil</strong>
+                    <div class="chart-sub">Manual/otomatis & kalibrasi</div>
+                  </div>
+                  <label class="toggle">
+                    <input type="checkbox" id="servo1-auto" checked />
+                    <span class="toggle-track"></span>
+                    <span class="toggle-label">Auto</span>
+                  </label>
+                </div>
+                <div class="servo-ctrl-body">
+                  <label class="form-row">
+                    <span>Sudut (°)</span>
+                    <input type="range" min="0" max="180" value="45" id="servo1-slider" />
+                  </label>
+                  <div class="servo-ctrl-actions">
+                    <button class="btn-ghost accent" id="servo1-apply">Terapkan</button>
+                    <button class="btn-ghost warning" id="servo1-calib">Kalibrasi</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="servo-ctrl-card">
+                <div class="servo-ctrl-head">
+                  <div>
+                    <strong>Servo 2 - Tray Infertil</strong>
+                    <div class="chart-sub">Manual/otomatis & kalibrasi</div>
+                  </div>
+                  <label class="toggle">
+                    <input type="checkbox" id="servo2-auto" checked />
+                    <span class="toggle-track"></span>
+                    <span class="toggle-label">Auto</span>
+                  </label>
+                </div>
+                <div class="servo-ctrl-body">
+                  <label class="form-row">
+                    <span>Sudut (°)</span>
+                    <input type="range" min="0" max="180" value="135" id="servo2-slider" />
+                  </label>
+                  <div class="servo-ctrl-actions">
+                    <button class="btn-ghost accent" id="servo2-apply">Terapkan</button>
+                    <button class="btn-ghost warning" id="servo2-calib">Kalibrasi</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="servo-ctrl-card wide">
+                <div class="servo-ctrl-head">
+                  <div>
+                    <strong>Mode Operasi</strong>
+                    <div class="chart-sub">Pengaturan global</div>
+                  </div>
+                </div>
+                <div class="servo-ctrl-body mode-grid">
+                  <label class="toggle">
+                    <input type="checkbox" id="system-auto" checked />
+                    <span class="toggle-track"></span>
+                    <span class="toggle-label">Auto Mode</span>
+                  </label>
+                  <div class="mode-actions">
+                    <button class="btn-ghost accent" id="system-start">Start</button>
+                    <button class="btn-ghost warning" id="system-stop">Stop</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= LOG SECTION ================= -->
+      <section id="log-section" class="page-section">
+        <div class="card">
+          <div class="card-inner">
+            <h2 class="section-title">Log & Riwayat Candling</h2>
+            <p class="section-desc">
+              Riwayat penuh dapat diunduh (CSV/Excel) untuk analisis dan audit.
+            </p>
+
+            <div class="log-toolbar">
+              <div>
+                <span class="chart-sub">Total entri: <strong id="log-count">0</strong></span>
+                <span class="chart-sub spacer">Total telur diproses: <strong id="log-total-eggs">0</strong></span>
+              </div>
+              <div class="table-actions">
+                <button class="btn-ghost accent" id="btn-log-csv">Download CSV</button>
+                <button class="btn-primary small" id="btn-log-xls">Export Excel</button>
+              </div>
+            </div>
+
+            <div class="table-card">
+              <div class="table-body log-table-wrapper">
+                <table class="perf-table">
+                  <thead>
+                    <tr>
+                      <th>Waktu</th>
+                      <th>ID Telur</th>
+                      <th>Klasifikasi</th>
+                      <th>Target Tray</th>
+                      <th>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody id="log-history-body">
+                    <tr><td colspan="4" class="table-empty">Belum ada data log.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SETTINGS SECTION ================= -->
+      <section id="settings-section" class="page-section">
+        <div class="card">
+          <div class="card-inner">
+            <h2 class="section-title">Pengaturan Sistem</h2>
+            <p class="section-desc">
+              Konfigurasi parameter ambang deteksi, IP perangkat, interval sampling, akun user, dan koneksi
+              database realtime untuk sistem IoT.
+            </p>
+
+            <div class="settings-grid">
+              <div class="settings-card">
+                <div class="settings-head">
+                  <div>
+                    <strong>Parameter Deteksi</strong>
+                    <div class="chart-sub">Ambang sensor & klasifikasi</div>
+                  </div>
+                </div>
+                <div class="settings-body">
+                  <label class="form-row">
+                    <span>Ambang Inframerah (cm)</span>
+                    <input type="number" value="6.5" step="0.1" />
+                  </label>
+                  <label class="form-row">
+                    <span>Confidence Model (%)</span>
+                    <input type="number" value="85" min="0" max="100" />
+                  </label>
+                  <label class="form-row">
+                    <span>Retry Scan</span>
+                    <input type="number" value="2" min="0" max="5" />
+                  </label>
+                </div>
+              </div>
+
+              <div class="settings-card">
+                <div class="settings-head">
+                  <div>
+                    <strong>Jaringan & Perangkat</strong>
+                    <div class="chart-sub">IP, port, dan sampling</div>
+                  </div>
+                </div>
+                <div class="settings-body">
+                  <label class="form-row">
+                    <span>IP Perangkat</span>
+                    <input type="text" value="192.168.1.120" />
+                  </label>
+                  <label class="form-row">
+                    <span>Port API</span>
+                    <input type="number" value="8080" />
+                  </label>
+                  <label class="form-row">
+                    <span>Interval Sampling (ms)</span>
+                    <input type="number" value="2500" step="100" />
+                  </label>
+                </div>
+              </div>
+
+              <div class="settings-card">
+                <div class="settings-head">
+                  <div>
+                    <strong>Database & MQTT</strong>
+                    <div class="chart-sub">Koneksi realtime IoT</div>
+                  </div>
+                </div>
+                <div class="settings-body">
+                  <label class="form-row">
+                    <span>MQTT Broker</span>
+                    <input type="text" value="mqtt://broker.local:1883" />
+                  </label>
+                  <label class="form-row">
+                    <span>Topic Publish</span>
+                    <input type="text" value="candling/line1/data" />
+                  </label>
+                  <label class="form-row">
+                    <span>Realtime DB URI</span>
+                    <input type="text" value="https://realtime.example.com/candling" />
+                  </label>
+                </div>
+              </div>
+
+              <div class="settings-card">
+                <div class="settings-head">
+                  <div>
+                    <strong>Akun & Akses</strong>
+                    <div class="chart-sub">Operator dan peran</div>
+                  </div>
+                  <button class="btn-primary small" id="add-account-btn">Tambah Akun</button>
+                </div>
+                <div class="table-body">
+                  <table class="perf-table compact">
+                    <thead>
+                      <tr>
+                        <th>Nama</th>
+                        <th>Peran</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody id="account-table-body">
+                      <!-- populated by JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="brand-icon">CT</div>
+        <div>
+          <div class="brand-title">Candling IoT</div>
+          <div class="brand-subtitle">Monitoring Deck</div>
+        </div>
+      </div>
+      <nav class="footer-nav">
+        <a href="#" class="footer-link">Home</a>
+        <a href="#" class="footer-link">About Us</a>
+        <a href="#" class="footer-link">Features</a>
+        <a href="#" class="footer-link">Contact</a>
+      </nav>
+    </div>
+    <div class="footer-divider"></div>
+    <div class="footer-copy">© Designed by Aminulloh</div>
+  </footer>
+
+  <!-- Modal konfigurasi -->
+  <div class="modal" id="config-modal">
+    <div class="modal-backdrop" id="config-backdrop"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Konfigurasi Simulasi</h3>
+        <button class="modal-close" id="config-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label class="modal-label">Interval scan (ms)
+          <input type="number" id="input-interval" min="500" step="100" />
+        </label>
+        <label class="modal-label">Probabilitas telur hadir (0-1)
+          <input type="number" id="input-prob" min="0" max="1" step="0.05" />
+        </label>
+        <label class="modal-label">Probabilitas fertil (0-1)
+          <input type="number" id="input-fertil" min="0" max="1" step="0.05" />
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost warning" id="config-cancel">Batal</button>
+        <button class="btn-primary" id="config-save">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal akun -->
+  <div class="modal" id="account-modal">
+    <div class="modal-backdrop" id="account-backdrop"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="account-title">Tambah Akun</h3>
+      </div>
+      <div class="modal-body">
+        <label class="modal-label">Nama
+          <input type="text" id="account-name" placeholder="Nama lengkap" />
+        </label>
+        <label class="modal-label">Peran
+          <input type="text" id="account-role" placeholder="Operator / Supervisor" />
+        </label>
+        <label class="modal-label">Status
+          <select id="account-status">
+            <option value="Aktif">Aktif</option>
+            <option value="Nonaktif">Nonaktif</option>
+          </select>
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost warning" id="account-cancel">Batal</button>
+        <button class="btn-primary" id="account-save">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal aksi -->
+  <div class="modal" id="action-modal">
+    <div class="modal-backdrop" id="action-backdrop"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="action-title">Aksi</h3>
+      </div>
+      <div class="modal-body">
+        <p id="action-message">Konfirmasi aksi ini?</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- JS -->
+  <script src="app.js"></script>
+</body>
+</html>
+
+
