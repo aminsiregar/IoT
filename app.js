@@ -75,6 +75,48 @@ const responseLabels = [];
 const responseSeries = [];
 const hourlyBuckets = {};
 
+// ============== FIREBASE REALTIME (opsional) ==============
+const fb = window.firebaseApi || null;
+const linePath = "candling/line1";
+const useRealtime = Boolean(fb && fb.db);
+
+function applyStateSnapshot(state) {
+  if (!state) return;
+  totalEggs = state.totalEggs ?? 0;
+  fertilEggs = state.fertilEggs ?? 0;
+  infertilEggs = state.infertilEggs ?? 0;
+  updateSensorUI(state.sensor?.detected, state.sensor?.distanceCm ?? 0);
+  if (state.servo1?.angle !== undefined) {
+    updateServoUI("servo1", state.servo1.angle, state.servo1.status || "update");
+  }
+  if (state.servo2?.angle !== undefined) {
+    updateServoUI("servo2", state.servo2.angle, state.servo2.status || "update");
+  }
+  if (state.lastClass) bumpHourly(state.lastClass === "Fertil");
+  updateKPI();
+  updateEggChart();
+  document.getElementById("last-check").textContent = formatTime(new Date(state.timestamp || Date.now()));
+}
+
+function initRealtime() {
+  if (!useRealtime) return;
+  fb.onValue(fb.ref(fb.db, `${linePath}/state`), (snap) => {
+    applyStateSnapshot(snap.val());
+  });
+  fb.onChildAdded(fb.ref(fb.db, `${linePath}/logs`), (snap) => {
+    const l = snap.val();
+    if (l) addLogRow(l.classification, l.target, { time: l.time, id: l.id });
+  });
+}
+
+function sendCommand(payload) {
+  if (!useRealtime) return;
+  return fb.set(fb.ref(fb.db, `${linePath}/commands/latest`), {
+    ...payload,
+    at: fb.serverTimestamp()
+  });
+}
+
 // ============== KPI ==============
 function updateKPI() {
   const totalSpan = document.getElementById("total-eggs");
@@ -548,7 +590,7 @@ function updateSensorUI(isDetected, distanceCm) {
 // ============== LOG ==============
 const logBody = document.getElementById("log-body");
 
-function addLogRow(classification, targetTray) {
+function addLogRow(classification, targetTray, opts = {}) {
   if (logBody.querySelector(".log-empty")) {
     logBody.innerHTML = "";
   }
@@ -557,12 +599,14 @@ function addLogRow(classification, targetTray) {
   row.className = "log-row";
 
   const now = new Date();
+  const customTime = opts.time;
+  const customId = opts.id;
 
   const colTime = document.createElement("span");
-  colTime.textContent = formatTime(now);
+  colTime.textContent = customTime || formatTime(now);
 
   const colId = document.createElement("span");
-  colId.textContent = "#EGG-" + String(totalEggs).padStart(3, "0");
+  colId.textContent = customId || "#EGG-" + String(totalEggs).padStart(3, "0");
 
   const colClass = document.createElement("span");
   const tagClass = document.createElement("span");
@@ -590,7 +634,7 @@ function addLogRow(classification, targetTray) {
 
   // Simpan ke riwayat penuh
   logHistory.push({
-    time: formatTime(now),
+    time: colTime.textContent,
     id: colId.textContent,
     classification,
     target: targetTray,
@@ -727,6 +771,10 @@ btnTest?.addEventListener("click", () => {
 
 let paused = false;
 btnPause?.addEventListener("click", () => {
+  if (useRealtime) {
+    showSwal("Mode Realtime", "Pause simulasi tidak aktif di mode realtime.", "warning");
+    return;
+  }
   paused = !paused;
   if (paused) {
     stopSimulation();
@@ -864,7 +912,7 @@ modalSave?.addEventListener("click", () => {
   scanIntervalMs = Math.max(500, newInterval);
   probHasEgg = newProb || probHasEgg;
   probFertil = newFertil || probFertil;
-  startSimulation();
+  if (!useRealtime) startSimulation();
   showToast("Konfigurasi disimpan", "success");
   closeConfig();
 });
@@ -901,8 +949,16 @@ function applyServo(id, angle) {
   showSwal("Setpoint Servo " + (id === "servo1" ? "1" : "2"), "Sudut diset ke " + angle.toFixed(0) + "°", "success");
 }
 
-servo1Apply?.addEventListener("click", () => applyServo("servo1", Number(servo1Slider.value)));
-servo2Apply?.addEventListener("click", () => applyServo("servo2", Number(servo2Slider.value)));
+servo1Apply?.addEventListener("click", () => {
+  const angle = Number(servo1Slider.value);
+  if (useRealtime) sendCommand({ type: "servo1", angle, source: "dashboard" });
+  applyServo("servo1", angle);
+});
+servo2Apply?.addEventListener("click", () => {
+  const angle = Number(servo2Slider.value);
+  if (useRealtime) sendCommand({ type: "servo2", angle, source: "dashboard" });
+  applyServo("servo2", angle);
+});
 
 servo1Calib?.addEventListener("click", () => {
   updateServoUI("servo1", 90, "kalibrasi");
@@ -922,13 +978,15 @@ servo2Slider?.addEventListener("input", (e) => {
   if (servo2AngleDisplay) servo2AngleDisplay.textContent = Number(e.target.value).toFixed(0);
 });
 
-systemStart?.addEventListener("click", () =>
-  showSwal("Start Sistem", "Mode operasional dimulai.", "success")
-);
+systemStart?.addEventListener("click", () => {
+  if (useRealtime) sendCommand({ type: "system", action: "start" });
+  showSwal("Start Sistem", "Mode operasional dimulai.", "success");
+});
 
-systemStop?.addEventListener("click", () =>
-  showSwal("Stop Sistem", "Mode operasional dihentikan.", "warning")
-);
+systemStop?.addEventListener("click", () => {
+  if (useRealtime) sendCommand({ type: "system", action: "stop" });
+  showSwal("Stop Sistem", "Mode operasional dihentikan.", "warning");
+});
 
 servo1Auto?.addEventListener("change", () => {
   showSwal(
@@ -952,7 +1010,11 @@ systemAuto?.addEventListener("change", () => {
 
 // Kick things off
 startTiming();
-startSimulation();
+if (useRealtime) {
+  initRealtime();
+} else {
+  startSimulation();
+}
 initStatsCharts();
 populatePerfTable();
 renderAccounts();
