@@ -695,9 +695,43 @@
     </div>
   </div>
 
+  <!-- Firebase (modular CDN) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics.js";
+    import {
+      getDatabase,
+      ref,
+      onValue,
+      onChildAdded,
+      push,
+      set,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+    // Gunakan URL Realtime Database proyek Anda; sesuaikan jika region berbeda
+    const databaseUrl = "https://candlingtelur-default-rtdb.asia-southeast1.firebasedatabase.app";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyACt_yguVoO_NhxJIOxnHpCVCmV4SRrQTc",
+      authDomain: "candlingtelur.firebaseapp.com",
+      projectId: "candlingtelur",
+      storageBucket: "candlingtelur.firebasestorage.app",
+      messagingSenderId: "214491235230",
+      appId: "1:214491235230:web:edf42fe0df5dffabf94c8f",
+      measurementId: "G-1LT0GWGKP6"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    getAnalytics(app);
+
+    // Expose helper agar bisa dipakai di app.js (non-module)
+    const db = getDatabase(app, databaseUrl);
+    window.firebaseApi = { db, ref, onValue, onChildAdded, push, set, serverTimestamp };
+  </script>
+
   <!-- JS -->
   <script src="app.js"></script>
 </body>
 </html>
-
 
